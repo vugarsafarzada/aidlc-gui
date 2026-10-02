@@ -1,0 +1,37 @@
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e9]:
+      - strong [ref=e10]: AIDLC
+      - text: GUI
+    - generic [ref=e11]: Unofficial community interface
+  - generic [ref=e12]:
+    - generic [ref=e13]: Structured development, made visible
+    - heading "Your AI-DLC workflow, in one focused workspace." [level=1] [ref=e16]: Your AI-DLC workflow,in one focused workspace.
+    - paragraph [ref=e17]: A polished visual layer for AWS Labs AI-DLC—with a real Codex terminal always within reach.
+    - button "Open a project" [ref=e18] [cursor=pointer]
+  - generic [ref=e23]:
+    - generic [ref=e24]:
+      - generic [ref=e26]:
+        - generic [ref=e27]: Recent projects
+        - generic [ref=e28]: Pick up where you left off
+      - button "Open your first project Choose any local project folder" [ref=e29] [cursor=pointer]:
+        - generic [ref=e31]:
+          - strong [ref=e32]: Open your first project
+          - generic [ref=e33]: Choose any local project folder
+    - generic [ref=e34]:
+      - generic [ref=e36]:
+        - generic [ref=e37]: System readiness
+        - generic [ref=e38]: Local tools detected on this machine
+      - generic [ref=e39]:
+        - generic [ref=e43]:
+          - strong [ref=e44]: Codex CLI
+          - generic [ref=e45]: codex-cli 0.160.0
+        - generic [ref=e46]: Ready
+      - generic [ref=e47]:
+        - generic [ref=e51]:
+          - strong [ref=e52]: AI-DLC
+          - generic [ref=e53]: aidlc 2.9.0
+        - generic [ref=e54]: Ready
+  - generic [ref=e55]:
+    - generic [ref=e56]: AIDLC-GUI is an unofficial community interface for AWS Labs AI-DLC. It is not an AWS product.
+    - generic [ref=e57]: Local-first · No project data leaves your machine

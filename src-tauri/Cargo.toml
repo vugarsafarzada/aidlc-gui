@@ -1,0 +1,32 @@
+[package]
+name = "aidlc-gui"
+version = "0.1.0"
+description = "A visual interface for AI-DLC"
+authors = ["AIDLC-GUI contributors"]
+edition = "2021"
+license = "MIT"
+
+[lib]
+name = "aidlc_gui_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+portable-pty = "0.9"
+uuid = { version = "1", features = ["v4"] }
+which = "7"
+walkdir = "2"
+rfd = "0.15"
+opener = { version = "0.8", features = ["reveal"] }
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true
