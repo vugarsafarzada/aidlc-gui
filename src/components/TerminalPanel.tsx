@@ -7,6 +7,14 @@ import { ChevronDown, Maximize2, Minimize2, RotateCcw, TerminalSquare } from "lu
 import { isTauri, resizeTerminal, startTerminal, stopTerminal, writeTerminal } from "../services/backend";
 import type { TerminalExit, TerminalOutput } from "../types";
 
+function themeColor(token: string) {
+  return getComputedStyle(document.documentElement).getPropertyValue(token).trim();
+}
+
+function ansiColor(token: string) {
+  return themeColor(token).match(/\d+/g)?.slice(0, 3).join(";") ?? "250;250;250";
+}
+
 interface Props {
   projectPath: string;
   fontSize: number;
@@ -52,7 +60,7 @@ export function TerminalPanel({ projectPath, fontSize, scrollback, height, expan
     const sessionId = sessionRef.current;
     const terminal = terminalRef.current;
     if (!terminal || !sessionId) return;
-    terminal.write(`\r\n\x1b[38;2;109;231;183m› GUI\x1b[0m \x1b[38;2;184;193;204m${command}\x1b[0m\r\n`);
+    terminal.write(`\r\n\x1b[38;2;${ansiColor("--accent")}m› GUI\x1b[0m \x1b[38;2;${ansiColor("--text")}m${command}\x1b[0m\r\n`);
     void writeTerminal(sessionId, `${command}\r`);
     terminal.focus();
   }, []);
@@ -64,15 +72,15 @@ export function TerminalPanel({ projectPath, fontSize, scrollback, height, expan
     if (!term || !fitRef.current) return;
     if (sessionRef.current) await stopTerminal(sessionRef.current).catch(() => undefined);
     term.reset();
-    term.write("\x1b[38;2;109;231;183mStarting Codex in this project…\x1b[0m\r\n");
+    term.write(`\x1b[38;2;${ansiColor("--accent")}mStarting Codex in this project…\x1b[0m\r\n`);
     const started = await startTerminal(projectPath, term.rows, term.cols);
     sessionRef.current = started.sessionId;
     setRunning(true);
     if (!isTauri()) {
       term.write("\x1b[2mBrowser preview uses a simulated terminal. Launch the Tauri app for a real Codex PTY.\x1b[0m\r\n\r\n");
-      term.write("\x1b[38;2;109;231;183m╭─ AIDLC-GUI preview ───────────────────────────────╮\x1b[0m\r\n");
+      term.write(`\x1b[38;2;${ansiColor("--accent")}m╭─ AIDLC-GUI preview ───────────────────────────────╮\x1b[0m\r\n`);
       term.write("│ Codex and AI-DLC share this terminal in desktop mode. │\r\n");
-      term.write("\x1b[38;2;109;231;183m╰───────────────────────────────────────────────────╯\x1b[0m\r\n");
+      term.write(`\x1b[38;2;${ansiColor("--accent")}m╰───────────────────────────────────────────────────╯\x1b[0m\r\n`);
     }
   }, [projectPath]);
 
@@ -89,15 +97,15 @@ export function TerminalPanel({ projectPath, fontSize, scrollback, height, expan
       allowTransparency: true,
       macOptionIsMeta: true,
       theme: {
-        background: "#080b0e",
-        foreground: "#c4ccd4",
-        cursor: "#6de7b7",
-        cursorAccent: "#080b0e",
-        selectionBackground: "#285445aa",
-        black: "#171c22", red: "#ff6b76", green: "#6de7b7", yellow: "#e9c46a",
-        blue: "#73a8ff", magenta: "#c69cff", cyan: "#58d6dc", white: "#d8dee6",
-        brightBlack: "#66707c", brightRed: "#ff8a93", brightGreen: "#8aefc9", brightYellow: "#f3d989",
-        brightBlue: "#94bbff", brightMagenta: "#d6b5ff", brightCyan: "#7de1e5", brightWhite: "#ffffff",
+        background: themeColor("--bg"),
+        foreground: themeColor("--text"),
+        cursor: themeColor("--accent"),
+        cursorAccent: themeColor("--bg"),
+        selectionBackground: themeColor("--selection"),
+        black: themeColor("--base-01"), red: themeColor("--red"), green: themeColor("--green"), yellow: themeColor("--orange"),
+        blue: themeColor("--blue"), magenta: themeColor("--pink"), cyan: themeColor("--cyan"), white: themeColor("--base-1"),
+        brightBlack: themeColor("--base-03"), brightRed: themeColor("--red"), brightGreen: themeColor("--green"), brightYellow: themeColor("--orange"),
+        brightBlue: themeColor("--blue"), brightMagenta: themeColor("--purple"), brightCyan: themeColor("--turquoise"), brightWhite: themeColor("--base-1"),
       },
     });
     const fit = new FitAddon();
@@ -129,7 +137,7 @@ export function TerminalPanel({ projectPath, fontSize, scrollback, height, expan
       void listen<TerminalExit>("terminal-exit", ({ payload }) => {
         if (payload.sessionId !== sessionRef.current) return;
         setRunning(false);
-        term.write(`\r\n\x1b[38;2;255;107;118mCodex exited${payload.code == null ? "" : ` (${payload.code})`}.\x1b[0m\r\n`);
+        term.write(`\r\n\x1b[38;2;${ansiColor("--danger")}mCodex exited${payload.code == null ? "" : ` (${payload.code})`}.\x1b[0m\r\n`);
       }).then((fn) => { unlistenExit = fn; });
     }
     void launch();

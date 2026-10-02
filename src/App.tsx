@@ -155,7 +155,6 @@ function App() {
 function Welcome({ boot, onChoose, onOpen, onRemove, error }: { boot: BootstrapState; onChoose: () => void; onOpen: (path: string) => void; onRemove: (path: string) => void; error: string }) {
   return (
     <main className="welcome">
-      <div className="welcome__glow" />
       <header className="welcome__header"><Brand /><div className="unofficial-tag">Unofficial community interface</div></header>
       <section className="welcome__hero">
         <div className="eyebrow"><Sparkles size={14} /> Structured development, made visible</div>
