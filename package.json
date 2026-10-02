@@ -10,10 +10,9 @@
   },
   "files": [
     "bin",
+    "binaries",
     "scripts",
     "dist",
-    "src-tauri/target/release/aidlc-gui",
-    "src-tauri/target/release/aidlc-gui.exe",
     "README.md",
     "LICENSE"
   ],
@@ -25,7 +24,8 @@
     "test": "vitest run",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build",
+    "tauri:build": "tauri build && node scripts/stage-binary.mjs",
+    "stage:binary": "node scripts/stage-binary.mjs",
     "postinstall": "node scripts/postinstall.mjs"
   },
   "dependencies": {

@@ -133,7 +133,7 @@ pub struct ProjectSnapshot {
     pub progress: u8,
     pub pending_approval: bool,
     pub pending_approval_since: Option<String>,
-    pub last_activity: Option<String>,
+    pub last_activity: Option<u64>,
     pub phases: Vec<PhaseInfo>,
     pub artifacts: Vec<ArtifactInfo>,
     pub activity: Vec<ActivityInfo>,

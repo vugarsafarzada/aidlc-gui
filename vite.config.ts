@@ -13,5 +13,14 @@ export default defineConfig({
     target: process.env.TAURI_ENV_PLATFORM === "windows" ? "chrome105" : "safari13",
     minify: process.env.TAURI_ENV_DEBUG ? false : "esbuild",
     sourcemap: Boolean(process.env.TAURI_ENV_DEBUG),
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("@xterm/")) return "terminal";
+          if (id.includes("react-markdown") || id.includes("remark-") || id.includes("micromark") || id.includes("mdast") || id.includes("hast")) return "markdown";
+          if (id.includes("node_modules/react") || id.includes("node_modules/lucide-react")) return "ui";
+        },
+      },
+    },
   },
 });

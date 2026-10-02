@@ -7,3 +7,8 @@ src-tauri/target/
 .idea/
 .vscode/
 coverage/
+binaries/
+.playwright-cli/
+output/
+.pnpm-store/
+*.tsbuildinfo

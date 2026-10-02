@@ -50,7 +50,7 @@ export interface ProjectSnapshot {
   progress: number;
   pendingApproval: boolean;
   pendingApprovalSince?: string | null;
-  lastActivity?: string | null;
+  lastActivity?: string | number | null;
   phases: PhaseInfo[];
   artifacts: ArtifactInfo[];
   activity: ActivityInfo[];

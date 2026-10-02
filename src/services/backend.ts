@@ -76,7 +76,7 @@ export async function removeRecent(path: string): Promise<void> {
 }
 
 export async function saveSettings(settings: Settings): Promise<BootstrapState> {
-  if (!isTauri()) return { settings, recents: [], tools: { codexAvailable: true, aidlcAvailable: true } };
+  if (!isTauri()) return { settings, recents: [], tools: { codexAvailable: true, codexVersion: "codex-cli 0.160.0", aidlcAvailable: true, aidlcVersion: "aidlc 2.9.0" } };
   return invoke("save_settings", { settings });
 }
 
@@ -93,6 +93,11 @@ export async function readArtifact(projectPath: string, artifactPath: string): P
 export async function revealArtifact(projectPath: string, artifactPath: string): Promise<void> {
   if (!isTauri()) return;
   return invoke("reveal_artifact", { projectPath, artifactPath });
+}
+
+export async function openArtifact(projectPath: string, artifactPath: string): Promise<void> {
+  if (!isTauri()) return;
+  return invoke("open_artifact", { projectPath, artifactPath });
 }
 
 export async function startTerminal(projectPath: string, rows: number, cols: number): Promise<TerminalStarted> {

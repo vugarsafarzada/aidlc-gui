@@ -11,12 +11,14 @@ interface Props {
   projectPath: string;
   fontSize: number;
   scrollback: number;
+  height: number;
   expanded?: boolean;
+  onHeightChange: (value: number) => void;
   onExpandedChange?: (value: boolean) => void;
   onReady?: (send: (command: string) => void) => void;
 }
 
-export function TerminalPanel({ projectPath, fontSize, scrollback, expanded: controlledExpanded, onExpandedChange, onReady }: Props) {
+export function TerminalPanel({ projectPath, fontSize, scrollback, height, expanded: controlledExpanded, onHeightChange, onExpandedChange, onReady }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<Terminal | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
@@ -28,6 +30,22 @@ export function TerminalPanel({ projectPath, fontSize, scrollback, expanded: con
   const setExpanded = (value: boolean) => {
     setLocalExpanded(value);
     onExpandedChange?.(value);
+  };
+
+  const beginResize = (event: React.MouseEvent<HTMLDivElement>) => {
+    if ((event.target as HTMLElement).closest("button")) return;
+    event.preventDefault();
+    setExpanded(true);
+    const resize = (moveEvent: MouseEvent) => {
+      const maximum = Math.max(220, window.innerHeight - 120);
+      onHeightChange(Math.min(maximum, Math.max(170, window.innerHeight - moveEvent.clientY)));
+    };
+    const finish = () => {
+      document.removeEventListener("mousemove", resize);
+      document.removeEventListener("mouseup", finish);
+    };
+    document.addEventListener("mousemove", resize);
+    document.addEventListener("mouseup", finish);
   };
 
   const send = useCallback((command: string) => {
@@ -59,6 +77,7 @@ export function TerminalPanel({ projectPath, fontSize, scrollback, expanded: con
   }, [projectPath]);
 
   useEffect(() => {
+    let disposed = false;
     const term = new Terminal({
       cursorBlink: true,
       cursorStyle: "bar",
@@ -88,13 +107,14 @@ export function TerminalPanel({ projectPath, fontSize, scrollback, expanded: con
     fitRef.current = fit;
     if (hostRef.current) {
       term.open(hostRef.current);
-      fit.fit();
+      if (hostRef.current.clientHeight > 10 && hostRef.current.clientWidth > 10) fit.fit();
     }
     const dataDisposable = term.onData((data) => {
       if (sessionRef.current) void writeTerminal(sessionRef.current, data);
     });
     const resizeObserver = new ResizeObserver(() => {
       window.requestAnimationFrame(() => {
+        if (disposed || !hostRef.current || hostRef.current.clientHeight <= 10 || hostRef.current.clientWidth <= 10) return;
         fit.fit();
         if (sessionRef.current) void resizeTerminal(sessionRef.current, term.rows, term.cols);
       });
@@ -114,6 +134,7 @@ export function TerminalPanel({ projectPath, fontSize, scrollback, expanded: con
     }
     void launch();
     return () => {
+      disposed = true;
       dataDisposable.dispose();
       resizeObserver.disconnect();
       unlistenOutput?.();
@@ -127,12 +148,14 @@ export function TerminalPanel({ projectPath, fontSize, scrollback, expanded: con
 
   useEffect(() => {
     if (terminalRef.current) terminalRef.current.options.fontSize = fontSize;
-    window.requestAnimationFrame(() => fitRef.current?.fit());
+    window.requestAnimationFrame(() => {
+      if (hostRef.current && hostRef.current.clientHeight > 10 && hostRef.current.clientWidth > 10) fitRef.current?.fit();
+    });
   }, [fontSize, scrollback, expanded]);
 
   return (
-    <section className={`terminal-panel ${expanded ? "terminal-panel--expanded" : ""}`}>
-      <div className="terminal-panel__bar">
+    <section className={`terminal-panel ${expanded ? "terminal-panel--expanded" : ""}`} style={{ height: expanded ? height : 34 }}>
+      <div className="terminal-panel__bar" onMouseDown={beginResize}>
         <div className="terminal-panel__title">
           <TerminalSquare size={15} />
           <strong>Interactive terminal</strong>

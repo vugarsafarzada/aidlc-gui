@@ -48,6 +48,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [terminalExpanded, setTerminalExpanded] = useState(false);
+  const [terminalHeight, setTerminalHeight] = useState(270);
   const sendRef = useRef<(command: string) => void>(() => undefined);
 
   const loadProject = useCallback(async (path: string) => {
@@ -64,6 +65,20 @@ function App() {
       if (recent) void loadProject(recent.path); else setLoading(false);
     }).catch((reason) => { setError(String(reason)); setLoading(false); });
   }, [loadProject]);
+
+  useEffect(() => {
+    if (!boot) return;
+    const preference = window.matchMedia("(prefers-color-scheme: light)");
+    const applyTheme = () => {
+      const theme = boot.settings.theme === "system"
+        ? (preference.matches ? "light" : "dark")
+        : boot.settings.theme;
+      document.documentElement.dataset.theme = theme;
+    };
+    applyTheme();
+    preference.addEventListener("change", applyTheme);
+    return () => preference.removeEventListener("change", applyTheme);
+  }, [boot?.settings.theme]);
 
   useEffect(() => {
     if (!project) return;
@@ -122,7 +137,7 @@ function App() {
             <div className="connection-pill"><StatusDot status={boot.tools.codexAvailable ? "online" : "offline"} pulse={boot.tools.codexAvailable} />{boot.tools.codexAvailable ? "Codex connected" : "Codex missing"}</div>
           </div>
         </header>
-        <div className={`content ${terminalExpanded ? "content--with-terminal" : ""}`}>
+        <div className={`content ${terminalExpanded ? "content--with-terminal" : ""}`} style={{ paddingBottom: terminalExpanded ? terminalHeight - 12 : undefined }}>
           {error && <div className="inline-alert inline-alert--error"><AlertTriangle size={16} />{error}<button onClick={() => setError("")}><X size={14} /></button></div>}
           {activeView === "overview" && <Overview project={project} boot={boot} onSend={send} onNavigate={setActiveView} onRefresh={() => refreshProject(project.path).then(setProject)} />}
           {activeView === "workflow" && <Workflow project={project} onSend={send} />}
@@ -131,7 +146,7 @@ function App() {
           {activeView === "terminal" && <TerminalFocus />}
           {activeView === "settings" && <SettingsView settings={boot.settings} tools={boot.tools} onSave={async (settings) => setBoot(await saveSettings(settings))} />}
         </div>
-        <TerminalPanel projectPath={project.path} fontSize={boot.settings.terminalFontSize} scrollback={boot.settings.terminalScrollback} expanded={terminalExpanded || activeView === "terminal"} onExpandedChange={setTerminalExpanded} onReady={(sendCommand) => { sendRef.current = sendCommand; }} />
+        <TerminalPanel projectPath={project.path} fontSize={boot.settings.terminalFontSize} scrollback={boot.settings.terminalScrollback} height={terminalHeight} onHeightChange={setTerminalHeight} expanded={terminalExpanded || activeView === "terminal"} onExpandedChange={setTerminalExpanded} onReady={(sendCommand) => { sendRef.current = sendCommand; }} />
       </main>
     </div>
   );
@@ -239,8 +254,12 @@ function QuickAction({ icon: Icon, label, onClick }: { icon: typeof Play; label:
 function Workflow({ project, onSend }: { project: ProjectSnapshot; onSend: (command: string) => void }) {
   const [selected, setSelected] = useState<StageInfo | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [options, setOptions] = useState<CommandOptions>({ depth: project.depth?.toLowerCase() || "standard", testStrategy: "standard", review: "advisory", guardPolicy: "strict" });
+  const [options, setOptions] = useState<CommandOptions>({ scope: "", depth: project.depth?.toLowerCase() || "standard", testStrategy: "standard", review: "advisory", guardPolicy: "strict" });
   const generated = optionsCommand(options);
+  const sendGenerated = () => {
+    const changesScope = options.scope && options.scope !== project.scope?.toLowerCase();
+    if (!changesScope || window.confirm(`Change this workflow to the “${options.scope}” scope? AI-DLC will recalculate pending stages.`)) onSend(generated);
+  };
   return <div className="page workflow-page">
     <div className="page-heading"><div><div className="eyebrow">Workflow map</div><h2>{project.currentIntent || "AI-DLC workflow"}</h2><p>Official state from {project.statePath || "the selected project"}</p></div><div className="row"><button className="secondary-button" onClick={() => onSend(workflowCommand("teamBoard"))}>Team board</button><button className="primary-button" onClick={() => onSend(workflowCommand("resume"))}><Play size={14} /> Resume</button></div></div>
     <div className="workflow-layout">
@@ -252,7 +271,7 @@ function Workflow({ project, onSend }: { project: ProjectSnapshot; onSend: (comm
         {selected ? <><h3>{selected.name}</h3><div className={`status-chip status-chip--${selected.status}`}><StatusDot status={selected.status} />{selected.status}</div><dl><dt>Phase</dt><dd>{selected.phase}</dd><dt>Agent</dt><dd>{selected.agent || "Not assigned"}</dd><dt>Details</dt><dd>{selected.details || "No additional details were recorded."}</dd></dl><button className="wide-action" onClick={() => onSend(workflowCommand("stage", selected.id))}>Jump to this stage</button></> : <div className="inspector-empty"><GitBranch size={28} /><strong>Select a stage</strong><span>Inspect official state and available actions.</span></div>}
       </aside>
     </div>
-    <section className="advanced-panel panel"><button className="advanced-panel__toggle" onClick={() => setShowAdvanced(!showAdvanced)}><div><span className="panel-kicker">Command builder</span><h3>Advanced workflow controls</h3></div><ChevronRight className={showAdvanced ? "rotate" : ""} size={17} /></button>{showAdvanced && <div className="advanced-panel__body"><div className="form-grid"><Select label="Depth" value={options.depth || ""} values={["minimal", "standard", "comprehensive"]} onChange={(depth) => setOptions({ ...options, depth })} /><Select label="Test strategy" value={options.testStrategy || ""} values={["minimal", "standard", "comprehensive"]} onChange={(testStrategy) => setOptions({ ...options, testStrategy })} /><Select label="Review" value={options.review || ""} values={["adversarial", "advisory", "none"]} onChange={(review) => setOptions({ ...options, review })} /><Select label="Guard policy" value={options.guardPolicy || ""} values={["strict", "relaxed", "off"]} onChange={(guardPolicy) => setOptions({ ...options, guardPolicy })} /></div><div className="toggle-row"><Toggle label="Sensors" checked={options.sensors !== false} onChange={(sensors) => setOptions({ ...options, sensors })} /><Toggle label="Learnings" checked={options.learnings !== false} onChange={(learnings) => setOptions({ ...options, learnings })} /><Toggle label="Summary confirmation" checked={options.summaryConfirmation !== false} onChange={(summaryConfirmation) => setOptions({ ...options, summaryConfirmation })} /><Toggle label="Plan approval" checked={options.planApproval !== false} onChange={(planApproval) => setOptions({ ...options, planApproval })} /></div><div className="command-preview"><span>Generated command</span><code>{generated}</code><button className="primary-button" onClick={() => onSend(generated)}><Play size={13} /> Send</button></div></div>}</section>
+    <section className="advanced-panel panel"><button className="advanced-panel__toggle" onClick={() => setShowAdvanced(!showAdvanced)}><div><span className="panel-kicker">Command builder</span><h3>Advanced workflow controls</h3></div><ChevronRight className={showAdvanced ? "rotate" : ""} size={17} /></button>{showAdvanced && <div className="advanced-panel__body"><div className="command-palette"><button onClick={() => onSend("$aidlc park")}>Park workflow<code>$aidlc park</code></button><button onClick={() => onSend("$aidlc intent")}>Intent manager<code>$aidlc intent</code></button><button onClick={() => onSend("$aidlc space")}>Space manager<code>$aidlc space</code></button><button onClick={() => onSend("$aidlc knowledge list")}>Knowledge<code>$aidlc knowledge list</code></button><button onClick={() => onSend("$aidlc plugin list")}>Plugins<code>$aidlc plugin list</code></button><button onClick={() => onSend("$aidlc config list")}>Configuration<code>$aidlc config list</code></button></div><div className="form-grid"><Select label="Scope" value={options.scope || ""} values={["", "enterprise", "feature", "mvp", "poc", "bugfix", "refactor", "infra", "security-patch", "classic", "workshop", "express"]} onChange={(scope) => setOptions({ ...options, scope })} /><Select label="Depth" value={options.depth || ""} values={["minimal", "standard", "comprehensive"]} onChange={(depth) => setOptions({ ...options, depth })} /><Select label="Test strategy" value={options.testStrategy || ""} values={["minimal", "standard", "comprehensive"]} onChange={(testStrategy) => setOptions({ ...options, testStrategy })} /><Select label="Review" value={options.review || ""} values={["adversarial", "advisory", "none"]} onChange={(review) => setOptions({ ...options, review })} /><Select label="Guard policy" value={options.guardPolicy || ""} values={["strict", "relaxed", "off"]} onChange={(guardPolicy) => setOptions({ ...options, guardPolicy })} /></div><div className="toggle-row"><Toggle label="Sensors" checked={options.sensors !== false} onChange={(sensors) => setOptions({ ...options, sensors })} /><Toggle label="Learnings" checked={options.learnings !== false} onChange={(learnings) => setOptions({ ...options, learnings })} /><Toggle label="Summary confirmation" checked={options.summaryConfirmation !== false} onChange={(summaryConfirmation) => setOptions({ ...options, summaryConfirmation })} /><Toggle label="Plan approval" checked={options.planApproval !== false} onChange={(planApproval) => setOptions({ ...options, planApproval })} /></div><div className="command-preview"><span>Generated command</span><code>{generated}</code><button className="primary-button" onClick={sendGenerated}><Play size={13} /> Send</button></div></div>}</section>
   </div>;
 }
 
@@ -260,7 +279,7 @@ function Phase({ phase, index, selected, onSelect }: { phase: PhaseInfo; index: 
   return <section className={`phase phase--${phase.status}`}><div className="phase__head"><span className="phase__number">{String(index + 1).padStart(2, "0")}</span><div><h3>{phase.name}</h3><span>{phase.stages.filter((stage) => stage.status === "completed" || stage.status === "skipped").length} of {phase.stages.length} stages</span></div><div className={`status-chip status-chip--${phase.status}`}><StatusDot status={phase.status} />{phase.status}</div></div><div className="phase__stages">{phase.stages.map((stage) => <button className={`stage-row ${selected === stage.id ? "stage-row--selected" : ""}`} key={stage.id} onClick={() => onSelect(stage)}><span className={`stage-state stage-state--${stage.status}`}>{stage.status === "completed" ? <Check size={13} /> : stage.status === "failed" ? <X size={13} /> : <span />}</span><span><strong>{stage.name}</strong><small>{stage.agent || stage.details || ""}</small></span><ChevronRight size={14} /></button>)}</div></section>;
 }
 
-function Select({ label, value, values, onChange }: { label: string; value: string; values: string[]; onChange: (value: string) => void }) { return <label className="field"><span>{label}</span><select value={value} onChange={(event) => onChange(event.target.value)}>{values.map((item) => <option key={item} value={item}>{item[0].toUpperCase() + item.slice(1)}</option>)}</select></label>; }
+function Select({ label, value, values, onChange }: { label: string; value: string; values: string[]; onChange: (value: string) => void }) { return <label className="field"><span>{label}</span><select value={value} onChange={(event) => onChange(event.target.value)}>{values.map((item) => <option key={item || "current"} value={item}>{item ? item[0].toUpperCase() + item.slice(1) : "Use current"}</option>)}</select></label>; }
 function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (value: boolean) => void }) { return <label className="toggle"><input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} /><span className="toggle__track"><span /></span><span>{label}</span></label>; }
 
 function Artifacts({ project }: { project: ProjectSnapshot }) {
